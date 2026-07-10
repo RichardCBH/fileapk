@@ -21,7 +21,7 @@ public partial class MainPage : ContentPage
         try
         {
             var result = await FolderPicker.Default.PickAsync();
-            if (result != null && !string.IsNullOrEmpty(result.Folder.Path))
+            if (result?.Folder?.Path is not null)
             {
                 _selectedPath = result.Folder.Path;
                 SelectedPathLabel.Text = _selectedPath;
