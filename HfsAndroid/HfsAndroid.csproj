@@ -10,10 +10,19 @@
     <SingleProject>true</SingleProject>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ApplicationTitle>HFS Android</ApplicationTitle>
+    <ApplicationId>com.hfsandroid.app</ApplicationId>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <MauiAsset Include="Resources\**" />
+  </ItemGroup>
+
+  <!-- Android Permissions -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
+    <AndroidManifest Include="Platforms\Android\AndroidManifest.xml" />
   </ItemGroup>
 
 </Project>
