@@ -1,3 +1,4 @@
+using CommunityToolkit.Maui.Storage;
 using Microsoft.Maui.Storage;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -19,7 +20,7 @@ public partial class MainPage : ContentPage
     {
         try
         {
-            var result = await FolderPicker.PickAsync();
+            var result = await FolderPicker.Default.PickAsync();
             if (result != null && !string.IsNullOrEmpty(result.Folder.Path))
             {
                 _selectedPath = result.Folder.Path;
@@ -29,15 +30,15 @@ public partial class MainPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("错误", ex.Message, "OK");
+            await DisplayAlertAsync("错误", ex.Message, "OK");
         }
     }
 
-    private void OnStartClicked(object sender, EventArgs e)
+    private async void OnStartClicked(object sender, EventArgs e)
     {
         if (string.IsNullOrEmpty(_selectedPath))
         {
-            DisplayAlert("提示", "请先选择文件夹", "OK");
+            await DisplayAlertAsync("提示", "请先选择文件夹", "OK");
             return;
         }
 
