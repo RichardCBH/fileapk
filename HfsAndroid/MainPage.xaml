@@ -7,10 +7,10 @@
         <VerticalStackLayout Spacing="20" Padding="20">
             <Label Text="HFS Android 文件服务器" FontSize="Large" HorizontalOptions="Center" />
 
-            <Button x:Name="SelectFolderButton" Text="选择共享文件夹" Clicked="OnSelectFolderClicked" />
-            <Label x:Name="SelectedPathLabel" Text="未选择文件夹" />
+            <Label Text="共享文件夹路径:" />
+            <Entry x:Name="PathEntry" Placeholder="/storage/emulated/0/Download" />
 
-            <Button x:Name="StartButton" Text="开始服务器" Clicked="OnStartClicked" IsEnabled="False" />
+            <Button x:Name="StartButton" Text="开始服务器" Clicked="OnStartClicked" />
             <Button x:Name="StopButton" Text="停止服务器" Clicked="OnStopClicked" IsEnabled="False" />
 
             <Label Text="当前 IPv6 地址:" />
