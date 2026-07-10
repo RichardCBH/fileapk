@@ -14,10 +14,13 @@
     <ApplicationId>com.hfsandroid.app</ApplicationId>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
+    <SkipValidateMauiImplicitPackageReferences>true</SkipValidateMauiImplicitPackageReferences>
   </PropertyGroup>
 
   <ItemGroup>
     <MauiAsset Include="Resources\**" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.20" />
+    <PackageReference Include="CommunityToolkit.Maui" Version="11.0.0" />
   </ItemGroup>
 
   <!-- Android Permissions -->
