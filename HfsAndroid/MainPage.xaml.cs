@@ -2,6 +2,7 @@ using CommunityToolkit.Maui.Storage;
 using Microsoft.Maui.Storage;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Linq;
 
 namespace HfsAndroid;
 
