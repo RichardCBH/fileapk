@@ -13,7 +13,7 @@ public class HfsServerService
     {
         _rootPath = rootPath;
         _listener = new HttpListener();
-        _listener.Prefixes.Add("http://+:8080/");
+        _listener.Prefixes.Add("http://+:65500/");
         _listener.Start();
         _isRunning = true;
 
