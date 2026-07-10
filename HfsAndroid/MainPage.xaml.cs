@@ -1,4 +1,3 @@
-using CommunityToolkit.Maui.Storage;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Linq;
@@ -16,29 +15,12 @@ public partial class MainPage : ContentPage
         LoadIpAddress();
     }
 
-    private async void OnSelectFolderClicked(object sender, EventArgs e)
+    private void OnStartClicked(object sender, EventArgs e)
     {
-        try
-        {
-            var result = await FolderPicker.Default.PickAsync();
-            if (result?.Folder?.Path is not null)
-            {
-                _selectedPath = result.Folder.Path;
-                SelectedPathLabel.Text = _selectedPath;
-                StartButton.IsEnabled = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlertAsync("错误", ex.Message, "OK");
-        }
-    }
-
-    private async void OnStartClicked(object sender, EventArgs e)
-    {
+        _selectedPath = PathEntry.Text?.Trim() ?? string.Empty;
         if (string.IsNullOrEmpty(_selectedPath))
         {
-            await DisplayAlertAsync("提示", "请先选择文件夹", "OK");
+            DisplayAlertAsync("提示", "请输入文件夹路径", "OK");
             return;
         }
 
