@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HfsAndroid.MainPage"
+             Title="HFS Android">
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+            <Label Text="HFS Android 文件服务器" FontSize="Large" HorizontalOptions="Center" />
+
+            <Button x:Name="SelectFolderButton" Text="选择共享文件夹" Clicked="OnSelectFolderClicked" />
+            <Label x:Name="SelectedPathLabel" Text="未选择文件夹" />
+
+            <Button x:Name="StartButton" Text="开始服务器" Clicked="OnStartClicked" IsEnabled="False" />
+            <Button x:Name="StopButton" Text="停止服务器" Clicked="OnStopClicked" IsEnabled="False" />
+
+            <Label Text="当前 IPv6 地址:" />
+            <Label x:Name="IpLabel" Text="加载中..." />
+
+            <Label x:Name="StatusLabel" Text="服务器未运行" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
