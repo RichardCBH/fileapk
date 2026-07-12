@@ -6,36 +6,66 @@ namespace HfsAndroid;
 public class HfsServerService
 {
     private HttpListener? _listener;
-    private bool _isRunning = false;
+    private bool _isRunning;
     private string _rootPath = string.Empty;
+    private CancellationTokenSource? _cts;
 
     public void Start(string rootPath)
     {
+        if (_isRunning)
+            return;
+
+        if (!Directory.Exists(rootPath))
+            throw new DirectoryNotFoundException($"路径不存在: {rootPath}");
+
         _rootPath = rootPath;
         _listener = new HttpListener();
+        // Bind to all interfaces on port 65500
         _listener.Prefixes.Add("http://+:65500/");
         _listener.Start();
         _isRunning = true;
+        _cts = new CancellationTokenSource();
 
-        Task.Run(() => ListenAsync());
+        _ = Task.Run(() => ListenAsync(_cts.Token));
     }
 
     public void Stop()
     {
         _isRunning = false;
-        _listener?.Stop();
+        _cts?.Cancel();
+        try
+        {
+            _listener?.Stop();
+            _listener?.Close();
+        }
+        catch
+        {
+            // ignore shutdown errors
+        }
+        _listener = null;
+        _cts?.Dispose();
+        _cts = null;
     }
 
-    private async Task ListenAsync()
+    private async Task ListenAsync(CancellationToken cancellationToken)
     {
-        while (_isRunning && _listener != null)
+        while (_isRunning && _listener != null && !cancellationToken.IsCancellationRequested)
         {
             try
             {
-                var context = await _listener.GetContextAsync();
-                await ProcessRequest(context);
+                var context = await _listener.GetContextAsync().WaitAsync(cancellationToken);
+                _ = ProcessRequest(context);
             }
-            catch { }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch
+            {
+                // ignore per-request accept errors while running
+                if (!_isRunning || cancellationToken.IsCancellationRequested)
+                    break;
+            }
         }
     }
 
@@ -43,66 +73,122 @@ public class HfsServerService
     {
         var request = context.Request;
         var response = context.Response;
-        var path = request.Url?.AbsolutePath.TrimStart('/') ?? "";
 
-        var fullPath = Path.Combine(_rootPath, path);
+        try
+        {
+            var path = Uri.UnescapeDataString(request.Url?.AbsolutePath.TrimStart('/') ?? "");
+            // Prevent path traversal
+            var fullPath = Path.GetFullPath(Path.Combine(_rootPath, path));
+            if (!fullPath.StartsWith(Path.GetFullPath(_rootPath), StringComparison.OrdinalIgnoreCase))
+            {
+                response.StatusCode = 403;
+                var denied = Encoding.UTF8.GetBytes("Forbidden");
+                await response.OutputStream.WriteAsync(denied);
+                return;
+            }
 
-        if (Directory.Exists(fullPath))
-        {
-            await ServeDirectoryListing(response, fullPath, path);
+            if (Directory.Exists(fullPath))
+            {
+                await ServeDirectoryListing(response, fullPath, path);
+            }
+            else if (File.Exists(fullPath))
+            {
+                await ServeFile(response, fullPath);
+            }
+            else
+            {
+                response.StatusCode = 404;
+                var notFound = Encoding.UTF8.GetBytes("Not Found");
+                await response.OutputStream.WriteAsync(notFound);
+            }
         }
-        else if (File.Exists(fullPath))
+        catch (Exception ex)
         {
-            await ServeFile(response, fullPath);
+            try
+            {
+                response.StatusCode = 500;
+                var err = Encoding.UTF8.GetBytes(ex.Message);
+                await response.OutputStream.WriteAsync(err);
+            }
+            catch
+            {
+                // ignore
+            }
         }
-        else
+        finally
         {
-            response.StatusCode = 404;
-            await response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Not Found"));
+            try { response.Close(); } catch { /* ignore */ }
         }
-
-        response.Close();
     }
 
-    private async Task ServeDirectoryListing(HttpListenerResponse response, string dirPath, string relativePath)
+    private static async Task ServeDirectoryListing(HttpListenerResponse response, string dirPath, string relativePath)
     {
         var sb = new StringBuilder();
-        sb.Append("<html><body><h1>Index of /").Append(relativePath).Append("</h1><ul>");
+        sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Index of /")
+          .Append(System.Net.WebUtility.HtmlEncode(relativePath))
+          .Append("</title></head><body><h1>Index of /")
+          .Append(System.Net.WebUtility.HtmlEncode(relativePath))
+          .Append("</h1><ul>");
 
-        foreach (var dir in Directory.GetDirectories(dirPath))
+        if (!string.IsNullOrEmpty(relativePath))
+        {
+            sb.Append("<li><a href=\"../\">../</a></li>");
+        }
+
+        foreach (var dir in Directory.GetDirectories(dirPath).OrderBy(d => d))
         {
             var name = Path.GetFileName(dir);
-            sb.Append($"<li><a href=\"{name}/\">{name}/</a></li>");
+            var encoded = Uri.EscapeDataString(name);
+            sb.Append("<li><a href=\"")
+              .Append(encoded)
+              .Append("/\">")
+              .Append(System.Net.WebUtility.HtmlEncode(name))
+              .Append("/</a></li>");
         }
-        foreach (var file in Directory.GetFiles(dirPath))
+
+        foreach (var file in Directory.GetFiles(dirPath).OrderBy(f => f))
         {
             var name = Path.GetFileName(file);
-            sb.Append($"<li><a href=\"{name}\">{name}</a></li>");
+            var encoded = Uri.EscapeDataString(name);
+            sb.Append("<li><a href=\"")
+              .Append(encoded)
+              .Append("\">")
+              .Append(System.Net.WebUtility.HtmlEncode(name))
+              .Append("</a></li>");
         }
 
         sb.Append("</ul></body></html>");
 
         var bytes = Encoding.UTF8.GetBytes(sb.ToString());
-        response.ContentType = "text/html";
+        response.ContentType = "text/html; charset=utf-8";
+        response.ContentLength64 = bytes.Length;
         await response.OutputStream.WriteAsync(bytes);
     }
 
-    private async Task ServeFile(HttpListenerResponse response, string filePath)
+    private static async Task ServeFile(HttpListenerResponse response, string filePath)
     {
         var bytes = await File.ReadAllBytesAsync(filePath);
         response.ContentType = GetMimeType(filePath);
+        response.ContentLength64 = bytes.Length;
         await response.OutputStream.WriteAsync(bytes);
     }
 
-    private string GetMimeType(string fileName)
+    private static string GetMimeType(string fileName)
     {
-        return Path.GetExtension(fileName).ToLower() switch
+        return Path.GetExtension(fileName).ToLowerInvariant() switch
         {
-            ".html" => "text/html",
+            ".html" or ".htm" => "text/html; charset=utf-8",
             ".css" => "text/css",
             ".js" => "application/javascript",
+            ".json" => "application/json",
             ".png" => "image/png",
-            ".jpg" => "image/jpeg",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".gif" => "image/gif",
+            ".svg" => "image/svg+xml",
+            ".txt" => "text/plain; charset=utf-8",
+            ".pdf" => "application/pdf",
+            ".zip" => "application/zip",
+            ".apk" => "application/vnd.android.package-archive",
             _ => "application/octet-stream"
         };
     }

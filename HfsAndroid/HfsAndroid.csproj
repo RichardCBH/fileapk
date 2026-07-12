@@ -18,13 +18,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <MauiAsset Include="Resources\**" />
-    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.41" />
-  </ItemGroup>
+    <!-- App Icon (generates mipmap/appicon and appicon_round) -->
+    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
 
-  <!-- Android Permissions -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
-    <AndroidManifest Include="Platforms\Android\AndroidManifest.xml" />
+    <!-- Splash Screen -->
+    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
+
+    <!-- Images -->
+    <MauiImage Include="Resources\Images\*" />
+
+    <!-- Custom Fonts (optional) -->
+    <MauiFont Include="Resources\Fonts\*" />
+
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.41" />
   </ItemGroup>
 
 </Project>
